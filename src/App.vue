@@ -2,7 +2,7 @@
   <div id="q-app" class="rows full-width vh100">
     <div class="col-auto flex">
       <div style="margin:auto"></div>
-      <q-btn flat :label="sDockerDaemonUser" />
+      <div>{{sDockerDaemonUser}}</div>
     </div>
     <div class="col flex">
       <div class="col column vh100">
@@ -115,175 +115,7 @@ html, body {
 </style>
 
 <script>
-import buildUrl from 'build-url';
-const axios = require('axios');
-
-const $log = console.log.bind(console);
-
-class DockerSearch
-{
-  sSearchURL = 'https://hub.docker.com/api/content/v1/products/search'
-
-  oParams = {
-    page_size: 50,
-    q: '',
-    source: 'community',
-    type: 'image'
-  }
-
-  constructor(oParams={})
-  {
-    this.fnSetParams(oParams);
-    // '?page_size=100&q=%2B&source=community'
-  }
-
-  fnSetParams(oParams={})
-  {
-    this.oParams = {...this.oParams, ...oParams};
-    return this;
-  }
-
-  toString()
-  {
-    return buildUrl(this.sSearchURL, { queryParams: this.oParams });
-  }
-}
-
-class DockerAPI
-{
-  constructor()
-  {
-    this.oDockerSearch = new DockerSearch();
-  }
-
-  async fnSearch(sSearchString)
-  {
-    return new Promise((fnSuccess, fnFail) => {
-      var sURL = this.oDockerSearch.fnSetParams({ q:sSearchString }).toString();
-
-      axios
-        .get(sURL)
-        .then(function (response) {
-          var aResult = [];
-
-          if (response.data && response.data.summaries) {
-            aResult = response.data.summaries;
-          }
-
-          $log(aResult);
-
-          fnSuccess(aResult);
-        })
-        .catch(function (error) {
-          fnFail(error);
-        });
-    });
-  }
-}
-
-const { spawn } = require('child_process');
-
-console.log(require('child_process'));
-
-// var sudo = require('sudo-prompt');
-var sudo = require('sudo-prompt');
-var oSudoOptions = {};
-
-class SpawnCommand
-{
-  sCommand = ''
-  aCommand = []
-  sSpawnCommand = ''
-  aSpawnArgs = []
-  aStdOut = []
-  aStdError = []
-  bClosed = true
-  iExitCode = -1
-  oSpawn = null
-  bSudo = false
-
-  constructor(sCommand)
-  {
-    var oThis = this;
-
-    oThis.sCommand = sCommand
-    var oMatch = oThis.sCommand.match(/\w+|".*?[^\\]"|'.*?[^\\]'/g)
-
-    if (!oMatch) {
-      throw new Error(`can't parse command '${sCommand}'`);
-    }
-
-    oThis.aCommand = Array.from(oMatch);
-    var aArr = Array.from(oMatch);
-    oThis.sSpawnCommand = aArr.shift();
-    oThis.aSpawnArgs = aArr;
-  }
-
-  fnPrepare(aParams)
-  {
-    var oThis = this;
-
-    var aResult = oThis.aSpawnArgs;
-
-    for (var sKey in aParams) {
-      aResult = aResult.map((v) => v.replace(`%${sKey}%`, aParams[sKey]))
-    }
-
-    return aResult;
-  }
-
-  async fnRun(aParams={}, bSudo = false)
-  {
-    var oThis = this;
-
-    return new Promise((fnSuccess, fnFail) => { 
-      var aMapped = oThis.fnPrepare(aParams);
-
-      oThis.bClosed = false;
-
-      if (oThis.bSudo = bSudo) {
-        sudo.exec(
-          aMapped.join(" "), 
-          oSudoOptions,
-          function(error, stdout, stderr) {
-            oThis.bClosed = true;
-
-            if (error) throw error;
-
-            oThis.aStdOut = stdout.split(/\n/);
-            oThis.aStdError = stderr.split(/\n/);
-
-            console.log('stdout: ' + stdout);
-          }
-        );
-        // oThis.oSpawn = sudo(oThis.aCommand, oSudoOptions);
-      } else {
-        oThis.oSpawn = spawn(oThis.sSpawnCommand, aMapped);
-
-        oThis.oSpawn.stdout.on('data', (data) => {
-          oThis.aStdOut.push(data);
-          console.log(`stdout: ${data}`);
-        });
-
-        oThis.oSpawn.stderr.on('data', (data) => {
-          oThis.aStdError.push(data);
-          console.error(`stderr: ${data}`);
-        });
-
-        oThis.oSpawn.on('close', (code) => {
-          oThis.bClosed = false;
-          oThis.iExitCode = code;
-          console.log(`child process exited with code ${code}`);
-          fnSuccess(oThis.aStdOut[0], {aStdOut: oThis.aStdOut, aStdError: oThis.aStdError, iExitCode:oThis.iExitCode});
-        });
-      }
-    });
-  }
-}
-
-var oDockerAPI = new DockerAPI();
-var oDockerDaemonUser = new SpawnCommand(`ps aux | grep dockerd | awk '{ print $1; exit; }'`);
-var oDockerPullImage = new SpawnCommand(`docker pull %sImageName%`);
+import { DockerWS } from './lib/docker-ws'
 
 var aFuncs = [];
 var fnD = (fn, iMillis) => {
@@ -298,6 +130,8 @@ var fnD = (fn, iMillis) => {
     iTimeoutHandler: setTimeout(fn, iMillis)
   });
 }
+
+var oDockerWS = null;
 
 export default {
   name: 'App',
@@ -320,7 +154,7 @@ export default {
   },
 
   methods: {
-    fnDebounceSearchResultsUpdate(sDockerHubSearchText)
+    fnDebounceSearchResultsUpdate()
     {
       var oThis = this;
 
@@ -340,7 +174,7 @@ export default {
       var oThis = this;
 
       if (oThis.sDockerDaemonUser == 'root') {
-        // svar {  } = await oDockerPullImage.fnRun({sImageName: }, true);
+        // var {  } = await oDockerPullImage.fnRun({sImageName: }, true);
       }
     },
 
@@ -348,24 +182,30 @@ export default {
     {
       var oThis = this;
 
-      oThis.sDockerDaemonUser = await oDockerDaemonUser.fnRun();
+      oThis.sDockerDaemonUser = await oDockerWS.fnRun('oDockerDaemonUser.fnRun');
     },
 
     async fnUpdateDockerHubList()
     {
       var oThis = this;
 
-      oThis.aDockerHubItems = await oDockerAPI.fnSearch(oThis.sDockerHubSearchText);
+      oThis.aDockerHubItems = await oDockerWS.fnRun('oDockerAPI.fnSearch', oThis.sDockerHubSearchText);
     }
+  },
+
+  async mounted()
+  {
+    var oThis = this;
+
+    oDockerWS = new DockerWS();
+
+    await oThis.fnUpdateDockerDaemonInfo();
+    await oThis.fnUpdateDockerHubList();
   },
 
   async created()
   {
     var oThis = this;
-
-    await oThis.fnUpdateDockerDaemonInfo();
-
-    oThis.fnUpdateDockerHubList();
   }
 }
 </script>
