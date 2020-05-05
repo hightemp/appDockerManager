@@ -49,14 +49,14 @@ export class DockerWS
     fnWait();
   }
 
-  async fnRun(sMethod, oParams={})
+  async fnRun(sMethod, mParams={})
   {
     var oThis = this;
 
     return new Promise((fnSuccess, fnFail) => {
       var oPacket = {
         sMethod,
-        oParams
+        mParams
       };
 
       oThis.fnWaitForConnetion(() => {

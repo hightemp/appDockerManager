@@ -45,7 +45,7 @@ wss.on('connection', (ws) => {
       console.log(oMessage.sMethod, fnFunction);
 
       if (fnFunction) {
-        ws.send(await fnFunction(oMessage.oParams));
+        ws.send(await fnFunction(oMessage.mParams));
       }
       // if (oMessage.sMethod == "oDockerDaemonUser") {
       //   ws.send(await oDocker.oDockerDaemonUser.fnRun(oMessage.oParams));
