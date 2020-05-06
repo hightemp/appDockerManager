@@ -6,6 +6,9 @@ export class DockerWS
   oWebSocket = null
   bConnected = false
 
+  oResultsGroupedByMethods = {}
+  oCallbacksGroupedByMethods = {}
+
   constructor()
   {
     var oThis = this;
@@ -22,8 +25,12 @@ export class DockerWS
       oThis.bConnected = true;
     };
 
-    ws.onmessage = function incoming(sMessage) {
-      console.log(sMessage);
+    ws.onmessage = (oMessage) => {
+      oMessage = JSON.parse(oMessage.data);
+      oThis.oCallbacksGroupedByMethods[oMessage.sMethod](oMessage.mResult);
+      // if (oMessage.sMethod == sMethod) {
+      //   fnSuccess(oMessage.mResult);
+      // }
     };
 
     ws.onclose = () => {
@@ -59,12 +66,10 @@ export class DockerWS
         mParams
       };
 
+      oThis.oCallbacksGroupedByMethods[sMethod] = fnSuccess;
+
       oThis.fnWaitForConnetion(() => {
         oThis.oWebSocket.send(oPacket);
-
-        oThis.oWebSocket.onmessage = (oMessage) => {
-          fnSuccess(JSON.parse(oMessage.data));
-        };
       });
     });
   }

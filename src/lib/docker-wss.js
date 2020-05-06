@@ -46,14 +46,21 @@ wss.on('connection', (ws) => {
     if (oMessage) {
       // var fnFunction = objectPath.withInheritedProps.get(oDocker, oMessage.sMethod);
       var mResult = dpresolve(oDocker, oMessage.sMethod);
+      var oPacket = {
+        sMethod: oMessage.sMethod, 
+        mResult: null
+      }
 
       console.log(oMessage.sMethod, mResult);
 
       if (typeof mResult === "function") {
-        ws.send(await mResult(oMessage.mParams));
+        oPacket.mResult = await mResult(oMessage.mParams);
       } else {
-        ws.send(mResult);
+        oPacket.mResult = mResult;
       }
+      
+      ws.send(oPacket);
+
       // if (oMessage.sMethod == "oDockerDaemonUser") {
       //   ws.send(await oDocker.oDockerDaemonUser.fnRun(oMessage.oParams));
       // }

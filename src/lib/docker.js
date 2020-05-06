@@ -36,6 +36,23 @@ class Docker
     return aResult;
   }
 
+  async fnGetDockerContainers(aParams)
+  {
+    var aResult = []
+
+    var aContainersList = await this.oCommands.oDockerContainers.fnRun(aParams);
+    
+    aContainersList.forEach((v) => {
+      try {
+        aResult.push(JSON.parse(v));
+      } catch (_) {
+        return;
+      }
+    });
+
+    return aResult;
+  }
+
   constructor()
   {
     this.fnInit();
@@ -56,6 +73,8 @@ class Docker
     this.oCommands.oDockerPullImage = new SpawnCommand(`docker pull %sImageName%`, this.bNeedRoot);
 
     this.oCommands.oDockerImages = new SpawnCommand(`docker images --format "{{json . }}"`, this.bNeedRoot, false, -1);
+
+    this.oCommands.oDockerContainers = new SpawnCommand(`docker container ls --all --format "{{json . }}"`, this.bNeedRoot, false, -1);
   }
 }
 

@@ -160,7 +160,7 @@
 
           <div class="col-auto row">
             <div class="col">
-              <q-input dense filled v-model="sDockerImagesFilterText" label="Filter images..." @input="fnUpdateDockerImagesList">
+              <q-input dense filled v-model="sDockerImagesFilterText" label="Filter images..." @input="fnDebounceImagesListUpdate">
                 <template v-slot:append>
                   <q-spinner-bars
                     v-show="bDockerImagesFilterTextShowLoader"
@@ -224,8 +224,90 @@
           </div>
 
       </div>
-      <div class="col">
-        
+      <div class="col column full-height">
+
+          <div class="col-auto row">
+            <div class="col">
+              <q-input dense filled v-model="sDockerContainersFilterText" label="Filter containers..." @input="fnDebounceContainersListUpdate">
+                <template v-slot:append>
+                  <q-spinner-bars
+                    v-show="bDockerContainersFilterTextShowLoader"
+                    color="primary"
+                    size="16px"
+                  />
+                </template>
+              </q-input>
+            </div>
+            <div class="col-1">
+              <q-btn flat icon="more_vert" class="full-width full-height">
+                <q-menu>
+                  <q-list dense style="min-width: 100px">
+                    <q-item clickable v-close-popup>
+                      <q-item-section>????</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+            </div>
+          </div>
+          <div class="col full-height relative-position">
+
+            <q-virtual-scroll
+              style=""
+              :items="aDockerContainers"
+              separator
+              class="full-height overflow-scroll"
+            >
+              <template v-slot="{ item, index }">
+                <q-item
+                  :key="index"
+                  tag="label"
+                  class="word-break"
+                  v-ripple
+                  dense
+                >
+                  <q-item-section side top>
+                    <q-checkbox v-model="aDockerContainersSelectedItems" :val="item.ID" color="primary" /> 
+                  </q-item-section>
+
+                  <q-item-section>
+                    <q-item-label lines="2">
+                      {{ item.Names }}<br>
+                      {{ item.Image }}
+                    </q-item-label>
+                    <q-item-label caption lines="4">
+                      ID: {{ item.ID }}
+                      Size: {{ item.Size }}<br>
+
+                      <template v-if="item.Mounts">
+                      Mounts: <b>{{ item.Mounts }}</b><br>
+                      </template>
+
+                      <template v-if="item.Networks">
+                      Networks: <b>{{ item.Networks }}</b><br>
+                      </template>
+
+                      <template v-if="item.Ports">
+                      Ports: <b>{{ item.Ports }}</b><br>
+                      </template>
+                    </q-item-label>
+                  </q-item-section>
+
+                  <q-item-section side top>
+                    <q-item-label caption>{{item.FormatedCreatedAt}}</q-item-label>
+                    <!--q-icon name="star" color="yellow" /-->
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-virtual-scroll>
+
+            <q-inner-loading :showing="bDockerContainersListShowLoader">
+              <q-spinner-gears size="50px" color="primary" />
+            </q-inner-loading>
+
+          </div>
+
+
       </div>
     </div>
   </div>
@@ -236,7 +318,8 @@ html, body {
   height: 100vh;
 }
 
-.word-break {
+.word-break,
+.word-break * {
   word-wrap: break-word;
   word-break: break-all;
 }
@@ -288,7 +371,11 @@ export default {
       bDockerImagesFilterTextShowLoader: false,
       bDockerImagesListShowLoader: false,
 
+      sDockerContainersFilterText: '',
       aDockerContainers: [],
+      aDockerContainersSelectedItems: [],
+      bDockerContainersFilterTextShowLoader: false,
+      bDockerContainersListShowLoader: false,
 
       oDockerInfo: null
     }
@@ -306,6 +393,30 @@ export default {
 
       fnD(
         oThis.fnUpdateDockerHubList.bind(oThis),
+        300
+      );
+    },
+
+    fnDebounceImagesListUpdate()
+    {
+      var oThis = this;
+
+      oThis.bDockerImagesFilterTextShowLoader = true;
+
+      fnD(
+        oThis.fnUpdateDockerImagesList.bind(oThis),
+        300
+      );
+    },
+
+    fnDebounceContainersListUpdate()
+    {
+      var oThis = this;
+
+      oThis.bDockerContainersFilterTextShowLoader = true;
+
+      fnD(
+        oThis.fnUpdateDockerContainersList.bind(oThis),
         300
       );
     },
@@ -328,6 +439,7 @@ export default {
     {
       var oThis = this;
 
+      oThis.bDockerImagesFilterTextShowLoader = false;
       oThis.bDockerImagesListShowLoader = true;
       oThis.aDockerImages = await oDockerWS.fnRun('fnGetDockerImages');
       oThis.aDockerImages = oThis.aDockerImages.map((v) => {
@@ -338,6 +450,23 @@ export default {
         oThis.aDockerImages = oThis.aDockerImages.filter((v) => ~v.Repository.indexOf(oThis.sDockerImagesFilterText));
       }
       oThis.bDockerImagesListShowLoader = false;
+    },
+
+    async fnUpdateDockerContainersList()
+    {
+      var oThis = this;
+
+      oThis.bDockerContainersFilterTextShowLoader = false;
+      oThis.bDockerContainersListShowLoader = true;
+      oThis.aDockerContainers = await oDockerWS.fnRun('fnGetDockerContainers');
+      oThis.aDockerContainers = oThis.aDockerContainers.map((v) => {
+        v.FormatedCreatedAt = moment(v.CreatedAt, "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD HH:mm:ss");
+        return v;
+      })
+      if (oThis.sDockerContainersFilterText) {
+        oThis.aDockerContainers = oThis.aDockerContainers.filter((v) => ~v.Image.indexOf(oThis.sDockerContainersFilterText));
+      }
+      oThis.bDockerContainersListShowLoader = false;
     },
 
     async fnUpdateDockerDaemonInfo()
@@ -351,10 +480,10 @@ export default {
     {
       var oThis = this;
 
+      oThis.bDockerHubSearchTextShowLoader = false;
       oThis.bDockerHubListShowLoader = true;
       oThis.aDockerHubItems = await oDockerWS.fnRun('oDockerAPI.fnSearch', oThis.sDockerHubSearchText);
       oThis.bDockerHubListShowLoader = false;
-      oThis.bDockerHubSearchTextShowLoader = false;
     }
   },
 
@@ -364,9 +493,10 @@ export default {
 
     oDockerWS = new DockerWS();
 
-    await oThis.fnUpdateDockerDaemonInfo();
-    await oThis.fnUpdateDockerHubList();
-    await oThis.fnUpdateDockerImagesList();
+    oThis.fnUpdateDockerDaemonInfo();
+    oThis.fnUpdateDockerHubList();
+    oThis.fnUpdateDockerImagesList();
+    oThis.fnUpdateDockerContainersList();
   },
 
   async created()
