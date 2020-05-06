@@ -1,7 +1,8 @@
 
-const DockerSearch = require("./docker-search");
+const { $log } = require('./logger');
+
+const { DockerSearch } = require("./docker-search");
 const axios = require('axios');
-const $log = console.log.bind(console);
 
 class DockerAPI
 {

@@ -1,4 +1,6 @@
 
+const { $log } = require('./logger');
+
 const { spawn, exec } = require('child_process');
 // console.log(require('child_process'));
 
@@ -86,14 +88,13 @@ class SpawnCommand
 
       if (!oThis.bExec) {
         aMapped = oThis.fnPrepareParamsArray(aParams);
+        sCommand = oThis.sSpawnCommand+" "+aMapped.join(" ");
         $log(`spawn: ${sCommand}`);
       } else {
         sCommand = oThis.fnPrepareParamsString(aParams);
         $log(`exec: ${sCommand}`);
       }
       
-      // var sCommand = oThis.sSpawnCommand+" "+aMapped.join(" ");
-
       oThis.bClosed = false;
 
       if (oThis.bSudo) {

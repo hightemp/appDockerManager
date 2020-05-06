@@ -1,4 +1,7 @@
-var { oDocker } = require('./docker');
+
+const { $log } = require('./logger');
+
+var { Docker } = require('./docker');
 
 // var objectPath = require("object-path");
 var dpresolve = require('./dotpath-resolve/lib/resolve');
@@ -29,6 +32,8 @@ const wss = new WebSocket.Server({
 });
 
 wss.on('connection', (ws) => {
+  var oDocker = new Docker();
+
   var send = ws.send.bind(ws);
 
   ws.send = (oObject) => {
@@ -40,12 +45,14 @@ wss.on('connection', (ws) => {
 
     if (oMessage) {
       // var fnFunction = objectPath.withInheritedProps.get(oDocker, oMessage.sMethod);
-      var fnFunction = dpresolve(oDocker, oMessage.sMethod);
+      var mResult = dpresolve(oDocker, oMessage.sMethod);
 
-      console.log(oMessage.sMethod, fnFunction);
+      console.log(oMessage.sMethod, mResult);
 
-      if (fnFunction) {
-        ws.send(await fnFunction(oMessage.mParams));
+      if (typeof mResult === "function") {
+        ws.send(await mResult(oMessage.mParams));
+      } else {
+        ws.send(mResult);
       }
       // if (oMessage.sMethod == "oDockerDaemonUser") {
       //   ws.send(await oDocker.oDockerDaemonUser.fnRun(oMessage.oParams));
