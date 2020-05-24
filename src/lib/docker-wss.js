@@ -49,7 +49,7 @@ wss.on('connection', (ws) => {
       var oPacket = {
         sMethod: oMessage.sMethod, 
         mResult: null
-      }
+      };
 
       console.log(oMessage.sMethod, mResult);
 
@@ -58,7 +58,7 @@ wss.on('connection', (ws) => {
       } else {
         oPacket.mResult = mResult;
       }
-      
+
       ws.send(oPacket);
 
       // if (oMessage.sMethod == "oDockerDaemonUser") {

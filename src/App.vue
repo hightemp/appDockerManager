@@ -102,7 +102,7 @@
 
           <div class="col-auto row">
             <div class="col">
-              <q-input dense filled v-model="sDockerHubSearchText" label="Search text..." @input="fnDebounceSearchResultsUpdate">
+              <q-input clearable dense filled v-model="sDockerHubSearchText" label="Search text..." @input="fnDebounceSearchResultsUpdate" :disable="bDockerHubListShowLoader">
                 <template v-slot:append>
                   <q-spinner-bars
                     v-show="bDockerHubSearchTextShowLoader"
@@ -160,7 +160,7 @@
 
           <div class="col-auto row">
             <div class="col">
-              <q-input dense filled v-model="sDockerImagesFilterText" label="Filter images..." @input="fnDebounceImagesListUpdate">
+              <q-input clearable dense filled v-model="sDockerImagesFilterText" label="Filter images..." @input="fnDebounceImagesListUpdate" :disable="bDockerImagesListShowLoader">
                 <template v-slot:append>
                   <q-spinner-bars
                     v-show="bDockerImagesFilterTextShowLoader"
@@ -228,7 +228,7 @@
 
           <div class="col-auto row">
             <div class="col">
-              <q-input dense filled v-model="sDockerContainersFilterText" label="Filter containers..." @input="fnDebounceContainersListUpdate">
+              <q-input clearable dense filled v-model="sDockerContainersFilterText" label="Filter containers..." @input="fnDebounceContainersListUpdate" :disable="bDockerContainersListShowLoader">
                 <template v-slot:append>
                   <q-spinner-bars
                     v-show="bDockerContainersFilterTextShowLoader"
@@ -377,6 +377,12 @@ export default {
       bDockerContainersFilterTextShowLoader: false,
       bDockerContainersListShowLoader: false,
 
+      sDockerRunningContainersFilterText: '',
+      aDockerRunningContainers: [],
+      aDockerRunningContainersSelectedItems: [],
+      bDockerRunningContainersFilterTextShowLoader: false,
+      bDockerRunningContainersListShowLoader: false,
+
       oDockerInfo: null
     }
   },
@@ -469,6 +475,23 @@ export default {
       oThis.bDockerContainersListShowLoader = false;
     },
 
+    async fnUpdateDockerRunningContainersList()
+    {
+      var oThis = this;
+
+      oThis.bDockerRunningContainersFilterTextShowLoader = false;
+      oThis.bDockerRunningContainersListShowLoader = true;
+      oThis.aDockerRunningContainers = await oDockerWS.fnRun('fnGetDockerRunningContainers');
+      oThis.aDockerRunningContainers = oThis.aDockerRunningContainers.map((v) => {
+        v.FormatedCreatedAt = moment(v.CreatedAt, "YYYY-MM-DD HH:mm:ss").format("YYYY-MM-DD HH:mm:ss");
+        return v;
+      })
+      if (oThis.sDockerRunningContainersFilterText) {
+        oThis.aDockerRunningContainers = oThis.aDockerRunningContainers.filter((v) => ~v.Image.indexOf(oThis.sDockerRunningContainersFilterText));
+      }
+      oThis.bDockerRunningContainersListShowLoader = false;
+    },
+
     async fnUpdateDockerDaemonInfo()
     {
       var oThis = this;
@@ -497,6 +520,7 @@ export default {
     oThis.fnUpdateDockerHubList();
     oThis.fnUpdateDockerImagesList();
     oThis.fnUpdateDockerContainersList();
+    oThis.fnUpdateDockerRunningContainersList();
   },
 
   async created()

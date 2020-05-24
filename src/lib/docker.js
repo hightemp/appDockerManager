@@ -21,7 +21,7 @@ class Docker
 
   async fnGetDockerImages(aParams)
   {
-    var aResult = []
+    var aResult = [];
 
     var aImagesList = await this.oCommands.oDockerImages.fnRun(aParams);
     
@@ -38,7 +38,24 @@ class Docker
 
   async fnGetDockerContainers(aParams)
   {
-    var aResult = []
+    var aResult = [];
+
+    var aContainersList = await this.oCommands.oDockerContainers.fnRun(aParams);
+    
+    aContainersList.forEach((v) => {
+      try {
+        aResult.push(JSON.parse(v));
+      } catch (_) {
+        return;
+      }
+    });
+
+    return aResult;
+  }
+
+  async fnGetDockerRunningContainers(aParams)
+  {
+    var aResult = [];
 
     var aContainersList = await this.oCommands.oDockerContainers.fnRun(aParams);
     
@@ -60,7 +77,6 @@ class Docker
 
   async fnInit()
   {
-    $log(this);
     this.oDockerAPI = new DockerAPI();
 
     this.oCommands.oDockerDaemonUser = new SpawnCommand(`ps aux | grep dockerd | grep -v "grep" | awk '{ print $1; exit; }'`, false, true);
@@ -75,6 +91,8 @@ class Docker
     this.oCommands.oDockerImages = new SpawnCommand(`docker images --format "{{json . }}"`, this.bNeedRoot, false, -1);
 
     this.oCommands.oDockerContainers = new SpawnCommand(`docker container ls --all --format "{{json . }}"`, this.bNeedRoot, false, -1);
+
+    this.oCommands.oDockerRunningdContainers = new SpawnCommand(`docker ps --all --format "{{json . }}"`, this.bNeedRoot, false, -1);
   }
 }
 
